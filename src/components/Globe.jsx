@@ -1,8 +1,25 @@
 import { getAqiLevel } from "../utils/aqi.js";
+import { graticule, landPaths } from "../data/geography.js";
+
+// Posisi label relatif terhadap titik kota
+const SIDE_CLASS = {
+  right: "left-full top-1/2 ml-2.5 -translate-y-1/2",
+  left: "right-full top-1/2 mr-2.5 -translate-y-1/2",
+  top: "bottom-full left-1/2 mb-2.5 -translate-x-1/2",
+  topRight: "bottom-full left-0 mb-3 -ml-3",
+  bottom: "left-1/2 top-full mt-2.5 -translate-x-1/2",
+};
+
+function pickSide(city) {
+  if (city.side) return city.side;
+  if (city.y != null && city.y < 12) return "bottom";
+  return city.x != null && city.x > 62 ? "left" : "right";
+}
 
 function Globe({ cities, records, selected, onSelect, zoom, onWheelZoom, flat }) {
-  const visible = cities.filter((city) => city.x != null && city.y != null);
-  const selectedHidden = selected.x == null || selected.y == null;
+  const isVisible = (city) => (flat ? city.onMap : city.onGlobe);
+  const visible = cities.filter(isVisible);
+  const selectedHidden = !isVisible(selected);
   const circleTransform = flat
     ? `perspective(1000px) rotateX(14deg) scale(${zoom / 100})`
     : `scale(${zoom / 100})`;
@@ -34,31 +51,28 @@ function Globe({ cities, records, selected, onSelect, zoom, onWheelZoom, flat })
           }`}
           style={{ transform: circleTransform }}
         >
-          <div
-            className={`pointer-events-none absolute inset-[10%_-4%] rounded-[50%] border border-sky-200/[0.08] shadow-[0_-48px_0_-47px_rgba(119,169,222,.12),0_48px_0_-47px_rgba(119,169,222,.12),0_112px_0_-111px_rgba(119,169,222,.1),0_-112px_0_-111px_rgba(119,169,222,.1)] transition-opacity duration-700 ${
-              flat ? "opacity-0" : "opacity-100"
-            }`}
-          />
-
-          <div
-            className={`pointer-events-none absolute inset-[-1%_24%] rounded-[50%] border border-sky-200/[0.07] transition-opacity duration-700 before:absolute before:inset-0 before:rounded-[50%] before:border before:border-sky-200/[0.07] before:content-[''] after:absolute after:inset-x-[20%] after:rounded-[50%] after:border after:border-sky-200/[0.06] after:content-[''] ${
-              flat ? "opacity-0" : "opacity-100"
-            }`}
-          />
-
           <svg
             viewBox="0 0 600 600"
-            className="absolute inset-0 h-full w-full fill-[#101b2b]/80 stroke-[#1a2a40] stroke-[1.2]"
-            aria-label="Ilustrasi daratan globe"
+            className="absolute inset-0 h-full w-full"
+            role="img"
+            aria-label="Peta Asia Tenggara"
           >
-            <path d="M150 140 Q180 120 205 153 L231 183 221 217 238 244 215 275 197 305 170 290 154 254 130 230 121 189Z" />
-            <path d="M226 303 L257 318 269 358 254 395 248 442 224 467 210 428 201 390 190 359Z" />
-            <path d="M300 175 Q321 184 325 212 L313 235 298 214Z" />
-            <path d="M318 255 L339 264 348 288 335 315 322 300Z" />
-            <path d="M347 310 L389 318 423 335 409 349 372 341 348 329Z" />
-            <path d="M388 381 Q424 354 469 383 L491 412 486 453 449 478 412 465 389 433Z" />
-            <path d="M283 267 L298 277 291 298 277 290Z" />
-            <path d="M359 241 L373 247 378 265 369 277 357 263Z" />
+            <g fill="none" strokeWidth="1">
+              {graticule.map((line) => (
+                <path
+                  key={line.key}
+                  d={line.d}
+                  stroke="#7dd3fc"
+                  strokeOpacity={line.major ? 0.22 : 0.09}
+                  strokeDasharray={line.major ? "6 6" : undefined}
+                />
+              ))}
+            </g>
+            <g className="fill-[#14253b] stroke-[#2f4d73]" strokeWidth="1" strokeLinejoin="round">
+              {landPaths.map((land) => (
+                <path key={land.name} d={land.d} />
+              ))}
+            </g>
           </svg>
 
           {/* Sapuan radar */}
@@ -87,12 +101,12 @@ function Globe({ cities, records, selected, onSelect, zoom, onWheelZoom, flat })
                 style={{ left: `${city.x}%`, top: `${city.y}%` }}
               >
                 <span
-                  className="anim-pop-in block"
+                  className="anim-pop-in relative block h-3.5 w-3.5"
                   style={{ animationDelay: `${500 + index * 90}ms` }}
                 >
                   {active && (
                     <span
-                      className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border"
+                      className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-14 -translate-x-1/2 -translate-y-1/2 rounded-full border"
                       style={{
                         borderColor: `${color}88`,
                         backgroundColor: `${color}18`,
@@ -100,11 +114,11 @@ function Globe({ cities, records, selected, onSelect, zoom, onWheelZoom, flat })
                       }}
                     >
                       <span
-                        className="absolute -inset-5 animate-ping rounded-full border opacity-30"
+                        className="absolute -inset-4 animate-ping rounded-full border opacity-30"
                         style={{ borderColor: color, animationDuration: "3s" }}
                       />
                       <span
-                        className="absolute -inset-10 rounded-full border opacity-30"
+                        className="absolute -inset-8 rounded-full border opacity-30"
                         style={{ borderColor: color }}
                       />
                     </span>
@@ -112,21 +126,24 @@ function Globe({ cities, records, selected, onSelect, zoom, onWheelZoom, flat })
 
                   {!active && severe && (
                     <span
-                      className="anim-breathe pointer-events-none absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                      className="anim-breathe pointer-events-none absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full"
                       style={{ background: `${color}22` }}
                     />
                   )}
 
+                  {/* Titik lokasi kota yang tepat */}
                   <span
-                    className={`relative flex items-center gap-2 whitespace-nowrap rounded-full border bg-[#0b101a]/95 px-3 py-1.5 text-xs text-slate-200 shadow-lg backdrop-blur-xl transition duration-300 group-hover:scale-110 group-hover:bg-slate-800 group-focus-visible:ring-2 group-focus-visible:ring-sky-400 ${
-                      active ? "scale-110 border-white/30" : "border-white/[0.09]"
-                    }`}
+                    className="absolute inset-0 rounded-full border-2 border-[#0b101a] transition duration-300 group-hover:scale-125"
+                    style={{ background: color, boxShadow: `0 0 12px ${color}` }}
+                  />
+
+                  {/* Label kota */}
+                  <span
+                    className={`absolute flex items-center gap-2 whitespace-nowrap rounded-full border bg-[#0b101a]/95 px-3 py-1.5 text-xs text-slate-200 shadow-lg backdrop-blur-xl transition duration-300 group-hover:bg-slate-800 group-focus-visible:ring-2 group-focus-visible:ring-sky-400 ${
+                      SIDE_CLASS[pickSide(city)]
+                    } ${active ? "border-white/30" : "border-white/[0.09]"}`}
                     style={{ borderColor: active ? `${color}99` : undefined }}
                   >
-                    <i
-                      className="h-2 w-2 rounded-full"
-                      style={{ background: color, boxShadow: `0 0 8px ${color}` }}
-                    />
                     <span className={active ? "" : "hidden sm:inline"}>{city.name}</span>
                     <b
                       className={`font-mono text-[13px] ${
@@ -141,10 +158,6 @@ function Globe({ cities, records, selected, onSelect, zoom, onWheelZoom, flat })
               </button>
             );
           })}
-
-          <div className="pointer-events-none absolute left-[43%] top-[60%] grid h-4 w-4 place-items-center rounded-full border border-white/15 text-xs text-slate-300/60">
-            +
-          </div>
         </div>
       </div>
 
