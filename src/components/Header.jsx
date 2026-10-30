@@ -179,7 +179,7 @@ function Header({
           <span className="grid h-6 w-6 place-items-center rounded-full border border-slate-200/80 text-sm text-sky-400">
             ⊙
           </span>
-          <span className="hidden sm:inline">Aether</span>
+          <span className="hidden sm:inline">AirAware</span>
         </button>
 
         <span className="mx-3 h-5 w-px bg-white/10" />
